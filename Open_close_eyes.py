@@ -31,16 +31,16 @@ def calculate_look_vector(D_left_eye_nose, D_right_eye_nose, D_left_right_eye, o
         # Progi wyznaczone eksperymentalnie, sprawdzają się dopóki jest zachowana podobna odległość która była przy kalibracji
         if (ln_D > 0.9 and lr_eye_D <= 1):
             look_vector = (40, 0)
-            print(ln_D)
+            #print(ln_D)
         elif (rn_D > 0.9 and lr_eye_D <= 1):
             look_vector = (-40, 0)
-            print(rn_D)
+            #print(rn_D)
         elif en_D < 0.20:
             look_vector = (0, -40)
-            print(en_D)
+            #print(en_D)
         elif (en_D > 0.650 and lr_eye_D > 1):
             look_vector = (0, 40)
-            print(en_D)
+            #print(en_D)
         else:
             look_vector = (0, 0)
             
@@ -244,7 +244,7 @@ while cap.isOpened():
 
     # Wyświetlenie obrazu
     cv2.imshow('MediaPipe Face Mesh', image)
-    if cv2.waitKey(5) & 0xFF == 27:
+    if cv2.waitKey(5) and 0xFF == 27:
         break
 
 # Zwalnianie zasobów
