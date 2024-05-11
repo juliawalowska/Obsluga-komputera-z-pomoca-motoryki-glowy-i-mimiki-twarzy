@@ -244,7 +244,7 @@ while cap.isOpened():
 
     # Wyświetlenie obrazu
     cv2.imshow('MediaPipe Face Mesh', image)
-    if cv2.waitKey(5) and 0xFF == 27:
+    if cv2.waitKey(5) & 0xFF == 27:
         break
 
 # Zwalnianie zasobów
