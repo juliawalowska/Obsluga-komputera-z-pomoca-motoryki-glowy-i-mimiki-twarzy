@@ -101,7 +101,7 @@ def analyze_smile(landmarks, width, height):
 # Inicjalizacja kamery
 oed_flag = True
 afterCalibration = False
-time2calibrate = 10
+time2calibrate = 4
 time2click = 0.3
 start_time = time.time()
 start_time_flag_ = True
