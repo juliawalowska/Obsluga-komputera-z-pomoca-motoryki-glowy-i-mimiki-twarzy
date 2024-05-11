@@ -38,7 +38,7 @@ def calculate_look_vector(D_left_eye_nose, D_right_eye_nose, D_left_right_eye, o
         elif en_D < 0.20:
             look_vector = (0, -40)
             print(en_D)
-        elif (en_D > 0.70 and lr_eye_D > 1):
+        elif (en_D > 0.650 and lr_eye_D > 1):
             look_vector = (0, 40)
             print(en_D)
         else:
@@ -79,18 +79,14 @@ def analyze_smile(landmarks, width, height):
     # Punkty ust z dolnej i górnej wargi
     upper_lip = [61, 185, 40, 39, 37, 0, 267, 269, 270, 409, 291]
     lower_lip = [61, 146, 91, 181, 84, 17, 314, 405, 321, 375, 291]
-
     # Obliczanie średnich pozycji y dla górnej i dolnej wargi
     upper_lip_pos = sum([landmarks[p].y for p in upper_lip]) / len(upper_lip)
     lower_lip_pos = sum([landmarks[p].y for p in lower_lip]) / len(lower_lip)
-
     # Oblicz różnicę między średnimi pozycjami y górnej i dolnej wargi
     vertical_lip_gap = (lower_lip_pos - upper_lip_pos) * height
-
     # Progowa wartość do rozpoznawania uśmiechu
     smile_threshold = 19
-    sad_threshold = 5.7
-
+    sad_threshold = 9
     # Klasyfikacja uśmiechu lub smutku
     if vertical_lip_gap > smile_threshold:
         return "Smile"
@@ -179,8 +175,8 @@ while cap.isOpened():
             look_vector = calculate_look_vector(distance_left_eye_nose, distance_right_eye_nose, distance_left_eye_right_eye, distance_eyes_nose, avg_LR_eye_distance)
             if avg_LR_eye_distance != 0:
 
-                # cv2.putText(image, f'Original distance between eyes: {avg_LR_eye_distance:.2f}', (10, 180), cv2.FONT_HERSHEY_SIMPLEX, 0.7,
-                #         (0, 0, 255), 2)
+                cv2.putText(image, f'Original distance between eyes: {avg_LR_eye_distance:.2f}', (10, 180), cv2.FONT_HERSHEY_SIMPLEX, 0.7,
+                        (0, 0, 255), 2)
                 cv2.putText(image, f'Left Eye-Nose: {distance_left_eye_nose/avg_LR_eye_distance:.2f}', (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7,
                         (200, 0, 0), 2)
                 cv2.putText(image, f'Right Eye-Nose: {distance_right_eye_nose/avg_LR_eye_distance:.2f}', (10, 60), cv2.FONT_HERSHEY_SIMPLEX,
@@ -189,8 +185,16 @@ while cap.isOpened():
                         cv2.FONT_HERSHEY_SIMPLEX, 0.7, (200, 0, 0), 2)
                 cv2.putText(image, f'Eye Nose: {distance_eyes_nose/avg_LR_eye_distance:.2f}', (10, 120), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (200, 0, 0), 2)
 
+
+            # Analiza uśmiechu
+            expression = analyze_smile(face_landmarks.landmark, w, h)
+            if expression == 'Smile' and look_vector == (0,0): pyautogui.scroll(20)
+            elif expression == 'Sad'and look_vector == (0,0): pyautogui.scroll(-20)
             # ruszanie kursorem o utworzony wektor
-            pyautogui.moveRel(look_vector[0], look_vector[1])
+            if expression == 'Smile':
+                pyautogui.moveRel(look_vector[0], look_vector[1])
+            else:
+                pyautogui.moveRel(look_vector[0]/4, look_vector[1]/4)
 
             # określenie czy oczy są otwarte
             if_closed = open_close(left_top_eyelid ,left_down_eyelid, right_top_eyelid, right_down_eyelid)
@@ -213,10 +217,8 @@ while cap.isOpened():
                 if (time.time() - start1_time) < time2click:
                     pyautogui.click(button='right')
                 
-            # Analiza uśmiechu
-            expression = analyze_smile(face_landmarks.landmark, w, h)
-            if expression == 'Smile': pyautogui.scroll(20)
-            elif expression == 'Sad': pyautogui.scroll(-20)
+            # print(look_vector)
+            
 
             # Wyświetlanie wyników analizy na obrazie
             cv2.putText(image, expression, (450, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (200, 0, 0), 2, cv2.LINE_AA)
