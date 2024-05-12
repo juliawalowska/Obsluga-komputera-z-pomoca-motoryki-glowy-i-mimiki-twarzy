@@ -76,11 +76,22 @@ def open_close(right_eyelid_D, left_eyelid_D, avg_left, avg_right):
 
     return [left_close,right_close]
 
+def analyze_smilev2(mouth_endings_distance, mouth_lips_distance, avg_w, avg_h):
+    
+    if avg_w != 0 and avg_h != 0:
+        if mouth_endings_distance/avg_w > 1.3 and mouth_lips_distance/avg_h < 1.5:
+            return "Smile"
+        elif mouth_lips_distance/avg_h > 2.5 and mouth_endings_distance/avg_w < 0.8:
+            return "Shock"
+        else:
+            return "Neutral"
+
 
 def analyze_smile(landmarks, width, height):
     # Punkty ust z dolnej i górnej wargi
     upper_lip = [61, 185, 40, 39, 37, 0, 267, 269, 270, 409, 291]
     lower_lip = [61, 146, 91, 181, 84, 17, 314, 405, 321, 375, 291]
+
     # Obliczanie średnich pozycji y dla górnej i dolnej wargi
     upper_lip_pos = sum([landmarks[p].y for p in upper_lip]) / len(upper_lip)
     lower_lip_pos = sum([landmarks[p].y for p in lower_lip]) / len(lower_lip)
@@ -99,17 +110,23 @@ def analyze_smile(landmarks, width, height):
 
 
 # Inicjalizacja kamery
-oed_flag = True
+
 afterCalibration = False
 time2calibrate = 4
 time2click = 0.3
 start_time = time.time()
 start_time_flag_ = True
-avg_LR_eye_distance = 0
+
 LR_eye_distances = []
 TD_right_eyelid_distances = []
 TD_left_eyelid_distances = []
+LR_mouth_endings_distances = []
+TD_lips_distances = []
 avg_TD_eyelid_distance = 0
+avg_LR_eye_distance = 0
+avg_LR_mouth_width = 0
+avg_TD_mouth_height = 0
+
 cap = cv2.VideoCapture(0)
 
 while cap.isOpened():
@@ -137,6 +154,10 @@ while cap.isOpened():
             left_down_eyelid = face_landmarks.landmark[159]
             right_top_eyelid = face_landmarks.landmark[386]
             right_down_eyelid = face_landmarks.landmark[374]
+            left_mouth_ending = face_landmarks.landmark[78]
+            right_mouth_ending = face_landmarks.landmark[306]
+            upper_lip_center = face_landmarks.landmark[11]
+            down_lip_center = face_landmarks.landmark[15]
             # chin = face_landmarks.landmark[152]
 
             # Skalowanie punktów do wymiarów obrazu z kamery
@@ -149,7 +170,10 @@ while cap.isOpened():
             left_down_eyelid = (int(left_down_eyelid.x * w), int(left_down_eyelid.y * h))
             right_top_eyelid = (int(right_top_eyelid.x * w), int(right_top_eyelid.y * h))
             right_down_eyelid = (int(right_down_eyelid.x * w), int(right_down_eyelid.y * h))
-            
+            left_mouth_ending = (int(left_mouth_ending.x * w), int(left_mouth_ending.y * h))
+            right_mouth_ending = (int(right_mouth_ending.x * w), int(right_mouth_ending.y * h))
+            upper_lip_center = (int(upper_lip_center.x * w), int(upper_lip_center.y * h))
+            down_lip_center = (int(down_lip_center.x * w), int(down_lip_center.y * h))
             # chin = (int(chin.x * w), int(chin.y * h))
 
             distance_left_eye_nose = calculate_distance(left_eye, nose)
@@ -158,39 +182,55 @@ while cap.isOpened():
             distance_right_eyelid = calculate_distance(right_top_eyelid, right_down_eyelid)
             distance_left_eyelid = calculate_distance(left_top_eyelid, left_down_eyelid)
             distance_eyes_nose = calculate_distance(mid_point_eyes, nose)
+            distance_mouth_endings = calculate_distance(left_mouth_ending, right_mouth_ending)
+            distance_lips = calculate_distance(upper_lip_center, down_lip_center)
 
             if start_time_flag_ == True:
                 start_time = time.time()
                 start_time_flag_ = False
             # Obliczanie dystansu między oczami na podstawie 5 sekundowej kalibracji
             if (time.time() - start_time) < time2calibrate:
-                LR_eye_distances.append(distance_left_eye_right_eye)
+
+                TD_lips_distances.append(distance_lips)
                 TD_right_eyelid_distances.append(distance_right_eyelid)
                 TD_left_eyelid_distances.append(distance_left_eyelid)
+
+                LR_mouth_endings_distances.append(distance_mouth_endings)
+                LR_eye_distances.append(distance_left_eye_right_eye)
                 cv2.putText(image, "HOLD STILL", (250, 80), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0,0,0), 2)
             else:
                 if afterCalibration == False:
-                    avg_LR_eye_distance = sum(LR_eye_distances) / len(LR_eye_distances)
                     avg_TD_right_eyelid_distance = sum(TD_right_eyelid_distances) / len(TD_right_eyelid_distances)
                     avg_TD_left_eyelid_distance = sum(TD_left_eyelid_distances) / len(TD_left_eyelid_distances)
+                    avg_TD_mouth_height = sum(TD_lips_distances) / len(TD_lips_distances)
+
+                    avg_LR_mouth_width = sum(LR_mouth_endings_distances)/ len(LR_mouth_endings_distances)
+                    avg_LR_eye_distance = sum(LR_eye_distances) / len(LR_eye_distances)
+                    
                     afterCalibration = True
                 cv2.putText(image, 'DO NOT CHANGE DISTANCE BETWEEN CAMERA', (20, 450), cv2.FONT_HERSHEY_SIMPLEX, 0.7,
                         (255, 255, 255), 1)
 
             # obliczanie wektora patrzenia
             look_vector = calculate_look_vector(distance_left_eye_nose, distance_right_eye_nose, distance_left_eye_right_eye, distance_eyes_nose, avg_LR_eye_distance)
+
             if afterCalibration == True:
 
-                cv2.putText(image, f'Original distance between eyes: {avg_LR_eye_distance:.2f}', (10, 180), cv2.FONT_HERSHEY_SIMPLEX, 0.7,
-                        (0, 0, 255), 2)
-                cv2.putText(image, f'Left Eye-Nose: {distance_left_eye_nose/avg_LR_eye_distance:.2f}', (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7,
-                        (200, 0, 0), 2)
-                cv2.putText(image, f'Right Eye-Nose: {distance_right_eye_nose/avg_LR_eye_distance:.2f}', (10, 60), cv2.FONT_HERSHEY_SIMPLEX,
-                        0.7, (200, 0, 0), 2)
-                cv2.putText(image, f'Left Eye-Right Eye: {distance_left_eye_right_eye/avg_LR_eye_distance:.2f}', (10, 90),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.7, (200, 0, 0), 2)
-                cv2.putText(image, f'Eye Nose: {distance_eyes_nose/avg_LR_eye_distance:.2f}', (10, 120), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (200, 0, 0), 2)
+                # cv2.putText(image, f'Original distance between eyes: {avg_LR_eye_distance:.2f}', (10, 180), cv2.FONT_HERSHEY_SIMPLEX, 0.7,
+                #         (0, 0, 255), 2)
+                # cv2.putText(image, f'Left Eye-Nose: {distance_left_eye_nose/avg_LR_eye_distance:.2f}', (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7,
+                #         (200, 0, 0), 2)
+                # cv2.putText(image, f'Right Eye-Nose: {distance_right_eye_nose/avg_LR_eye_distance:.2f}', (10, 60), cv2.FONT_HERSHEY_SIMPLEX,
+                #         0.7, (200, 0, 0), 2)
+                # cv2.putText(image, f'Left Eye-Right Eye: {distance_left_eye_right_eye/avg_LR_eye_distance:.2f}', (10, 90),
+                #         cv2.FONT_HERSHEY_SIMPLEX, 0.7, (200, 0, 0), 2)
+                # cv2.putText(image, f'Eye Nose: {distance_eyes_nose/avg_LR_eye_distance:.2f}', (10, 120), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (200, 0, 0), 2)
                 
+                cv2.putText(image, f'Distance between mouth endings: {distance_mouth_endings / avg_LR_mouth_width:.2f}', (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7,
+                         (0, 0, 255), 2)
+                cv2.putText(image, f'Distance between upper and lower lips: {distance_lips / avg_TD_mouth_height:.2f}', (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.7,
+                         (0, 0, 255), 2)
+ 
                 # określenie czy oczy są otwarte
 
                 if_closed = open_close(distance_left_eyelid, distance_right_eyelid, avg_TD_left_eyelid_distance,
@@ -212,17 +252,28 @@ while cap.isOpened():
                     start1_time = time.time()
                     if (time.time() - start1_time) < time2click:
                         pyautogui.click(button='right')
-
-
-            # Analiza uśmiechu
-            expression = analyze_smile(face_landmarks.landmark, w, h)
+            
+            expression = analyze_smilev2(distance_mouth_endings, distance_lips, avg_LR_mouth_width, avg_TD_mouth_height)
             if expression == 'Smile' and look_vector == (0,0): pyautogui.scroll(20)
-            elif expression == 'Sad'and look_vector == (0,0): pyautogui.scroll(-20)
+            elif expression == 'Shock'and look_vector == (0,0): pyautogui.scroll(-20)
             # ruszanie kursorem o utworzony wektor
             if expression == 'Smile':
                 pyautogui.moveRel(look_vector[0], look_vector[1])
             else:
                 pyautogui.moveRel(look_vector[0]/4, look_vector[1]/4)
+
+
+            # Analiza uśmiechu
+            # expression = analyze_smile(face_landmarks.landmark, w, h)
+            # if expression == 'Smile' and look_vector == (0,0): pyautogui.scroll(20)
+            # elif expression == 'Sad'and look_vector == (0,0): pyautogui.scroll(-20)
+            # # ruszanie kursorem o utworzony wektor
+            # if expression == 'Smile':
+            #     pyautogui.moveRel(look_vector[0], look_vector[1])
+            # else:
+            #     pyautogui.moveRel(look_vector[0]/4, look_vector[1]/4)
+
+            
 
             
             # print(look_vector)
@@ -239,6 +290,8 @@ while cap.isOpened():
             cv2.circle(image, left_down_eyelid, 2, (0, 0, 255), -1)
             cv2.circle(image, right_down_eyelid, 2, (0, 0, 255), -1)
             cv2.circle(image, right_top_eyelid, 2, (0, 0, 255), -1)
+            cv2.circle(image, left_mouth_ending, 2, (0, 0, 255), -1)
+            cv2.circle(image, right_mouth_ending, 2, (0, 0, 255), -1)
 
             cv2.arrowedLine(image, nose, (nose[0] + look_vector[0], nose[1] + look_vector[1]), (0, 255, 255), 2)
 
