@@ -22,10 +22,10 @@ def calculate_look_vector(D_left_eye_nose, D_right_eye_nose, D_left_right_eye, o
     # Obliczenie środka między oczami
 
     if avg != 0:
-        lr_eye_D = D_left_right_eye/avg
-        en_D = distance_eyes_nose/avg
-        rn_D = D_right_eye_nose/avg
-        ln_D = D_left_eye_nose/avg
+        lr_eye_D = D_left_right_eye/avg # Dystans Lewe - prawe oko znormalizowany
+        en_D = distance_eyes_nose/avg   # Dystans Środek między oczami - nos znormalizowany
+        rn_D = D_right_eye_nose/avg     # Dystans Prawe oko - nos znormalizowany
+        ln_D = D_left_eye_nose/avg      # Dystans Lewe oko - nos znormalizowany
         look_vector = (0, 0)
 
         # Progi wyznaczone eksperymentalnie, sprawdzają się dopóki jest zachowana podobna odległość która była przy kalibracji
@@ -59,8 +59,8 @@ def calculate_look_vector(D_left_eye_nose, D_right_eye_nose, D_left_right_eye, o
 
 def open_close(right_eyelid_D, left_eyelid_D, avg_left, avg_right):
 
-    re_D = right_eyelid_D/avg_right
-    le_D = left_eyelid_D/avg_left
+    re_D = right_eyelid_D/avg_right # Znormalizowany dystans między powiekami prawego oka
+    le_D = left_eyelid_D/avg_left # Znormalizowany dystans między powiekami lewego oka
     #print(re_D, le_D)
 
     # Progi ustalone eksperymentalnie
@@ -193,20 +193,20 @@ while cap.isOpened():
 
                 TD_lips_distances.append(distance_lips)
                 TD_right_eyelid_distances.append(distance_right_eyelid)
-                TD_left_eyelid_distances.append(distance_left_eyelid)
-
+                TD_left_eyelid_distances.append(distance_left_eyelid) 
                 LR_mouth_endings_distances.append(distance_mouth_endings)
-                LR_eye_distances.append(distance_left_eye_right_eye)
+                LR_eye_distances.append(distance_left_eye_right_eye) # Wypełnianie tablic wartościami
+
                 cv2.putText(image, "HOLD STILL", (250, 80), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0,0,0), 2)
             else:
                 if afterCalibration == False:
                     avg_TD_right_eyelid_distance = sum(TD_right_eyelid_distances) / len(TD_right_eyelid_distances)
                     avg_TD_left_eyelid_distance = sum(TD_left_eyelid_distances) / len(TD_left_eyelid_distances)
                     avg_TD_mouth_height = sum(TD_lips_distances) / len(TD_lips_distances)
-
                     avg_LR_mouth_width = sum(LR_mouth_endings_distances)/ len(LR_mouth_endings_distances)
-                    avg_LR_eye_distance = sum(LR_eye_distances) / len(LR_eye_distances)
-                    
+                    avg_LR_eye_distance = sum(LR_eye_distances) / len(LR_eye_distances) 
+                    # Obliczenie średnich odległości na podstawie pomiarów w tablicach
+
                     afterCalibration = True
                 cv2.putText(image, 'DO NOT CHANGE DISTANCE BETWEEN CAMERA', (20, 450), cv2.FONT_HERSHEY_SIMPLEX, 0.7,
                         (255, 255, 255), 1)
@@ -239,19 +239,19 @@ while cap.isOpened():
                     cv2.putText(image, 'Oba oczy zamkniete', (450, 200), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (200, 0, 0), 2)
                     start1_time = time.time()
                     if (time.time() - start1_time) < time2click:
-                        pyautogui.doubleClick()
+                        pyautogui.doubleClick() # Podwójne wciśnięcie lewego przycisku przy zamknięciu obu oczu
                 elif if_closed[0] == True and if_closed[1] == False:
                     cv2.putText(image, 'Lewe Zamkniete', (450, 200), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (200, 0, 0), 2)
                     start1_time = time.time()
                     if (time.time() - start1_time) < time2click:
-                        pyautogui.click()
+                        pyautogui.click() # Wciśnięcie lewego przycisku przy zamknięciu lewego oka
                 elif if_closed[0] == False and if_closed[1] == False:
                     cv2.putText(image, 'Oba otwarte', (450, 200), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (200, 0, 0), 2)
                 else:
                     cv2.putText(image, 'Prawe zamkniete', (450, 200), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (200, 0, 0), 2)
                     start1_time = time.time()
                     if (time.time() - start1_time) < time2click:
-                        pyautogui.click(button='right')
+                        pyautogui.click(button='right') # Wciśnięcie prawego przycisku przy zamknięciu prawego oka
             
             expression = analyze_smilev2(distance_mouth_endings, distance_lips, avg_LR_mouth_width, avg_TD_mouth_height)
             if expression == 'Smile' and look_vector == (0,0): pyautogui.scroll(20)
