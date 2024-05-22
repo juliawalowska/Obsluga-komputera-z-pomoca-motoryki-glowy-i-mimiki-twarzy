@@ -257,7 +257,7 @@ while cap.isOpened():
             if expression == 'Smile' and look_vector == (0,0): pyautogui.scroll(20)
             elif expression == 'Shock'and look_vector == (0,0): pyautogui.scroll(-20)
             # ruszanie kursorem o utworzony wektor
-            if expression == 'Smile':
+            if expression == 'Shock':
                 pyautogui.moveRel(look_vector[0], look_vector[1])
             else:
                 pyautogui.moveRel(look_vector[0]/4, look_vector[1]/4)
