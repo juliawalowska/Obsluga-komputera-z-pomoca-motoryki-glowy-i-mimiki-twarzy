@@ -196,8 +196,8 @@ while cap.isOpened():
                 TD_left_eyelid_distances.append(distance_left_eyelid) 
                 LR_mouth_endings_distances.append(distance_mouth_endings)
                 LR_eye_distances.append(distance_left_eye_right_eye) # Wypełnianie tablic wartościami
-
                 cv2.putText(image, "HOLD STILL", (250, 80), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0,0,0), 2)
+                cv2.putText(image, "CALIBRATION", (250, 120), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0,0,255), 2)
             else:
                 if afterCalibration == False:
                     avg_TD_right_eyelid_distance = sum(TD_right_eyelid_distances) / len(TD_right_eyelid_distances)
@@ -226,10 +226,10 @@ while cap.isOpened():
                 #         cv2.FONT_HERSHEY_SIMPLEX, 0.7, (200, 0, 0), 2)
                 # cv2.putText(image, f'Eye Nose: {distance_eyes_nose/avg_LR_eye_distance:.2f}', (10, 120), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (200, 0, 0), 2)
                 
-                cv2.putText(image, f'Distance between mouth endings: {distance_mouth_endings / avg_LR_mouth_width:.2f}', (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7,
-                         (0, 0, 255), 2)
-                cv2.putText(image, f'Distance between upper and lower lips: {distance_lips / avg_TD_mouth_height:.2f}', (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.7,
-                         (0, 0, 255), 2)
+                # cv2.putText(image, f'Distance between mouth endings: {distance_mouth_endings / avg_LR_mouth_width:.2f}', (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7,
+                #          (0, 0, 255), 2)
+                # cv2.putText(image, f'Distance between upper and lower lips: {distance_lips / avg_TD_mouth_height:.2f}', (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.7,
+                #          (0, 0, 255), 2)
  
                 # określenie czy oczy są otwarte
 
