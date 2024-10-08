@@ -92,7 +92,7 @@ def main():
         last_point = points[-1]
         distance_to_last_point = math.hypot(last_point[0] - cursor_pos[0], last_point[1] - cursor_pos[1])
 
-        if distance_to_last_point < 20 and end_time is None:  # Gdy kursor jest blisko ostatniego punktu
+        if distance_to_last_point < 10 and end_time is None:  # Gdy kursor jest blisko ostatniego punktu
             end_time = pygame.time.get_ticks()  # Zapisz czas zakończenia
 
         # Obliczanie i wyświetlanie dokładności

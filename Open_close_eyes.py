@@ -4,6 +4,7 @@ import mediapipe as mp
 import numpy as np
 import math
 import time
+import subprocess
 
 # Inicjalizacja MediaPipe Face Mesh z opcją 'refine_landmarks=True', która umożliwia użycie 478 punktów
 mp_face_mesh = mp.solutions.face_mesh
@@ -233,6 +234,10 @@ while cap.isOpened():
  
                 # określenie czy oczy są otwarte
 
+                if cv2.waitKey(2) & 0xFF == ord('t'):
+                    subprocess.Popen(['python', r'C:\Users\Julia\Desktop\STUDIA\test\Obsluga-komputera-z-pomoca-motoryki-glowy-i-mimiki-twarzy\test_functions.py'])
+                    break
+
                 if_closed = open_close(distance_left_eyelid, distance_right_eyelid, avg_TD_left_eyelid_distance,
                                        avg_TD_right_eyelid_distance)
                 if if_closed[0] == True and if_closed[1] == True:
@@ -299,6 +304,7 @@ while cap.isOpened():
     cv2.imshow('MediaPipe Face Mesh', image)
     if cv2.waitKey(5) & 0xFF == 27:
         break
+    
 
 # Zwalnianie zasobów
 cap.release()
