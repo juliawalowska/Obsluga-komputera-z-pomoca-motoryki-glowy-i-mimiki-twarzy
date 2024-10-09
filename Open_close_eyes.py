@@ -109,6 +109,56 @@ def analyze_smile(landmarks, width, height):
     else:
         return "Neutral"
 
+def camera_calibration():
+    pass
+
+def calculate_normal_vector(height, width, results, img):
+
+    _indices_pose = [1, 33, 61, 199, 263, 291]
+    mesh_points = np.array(
+        [
+            np.multiply([p.x, p.y], [width, height]).astype(int)
+            for p in results.multi_face_landmarks[0].landmark
+        ]
+    )
+    mesh_3D_Points = np.array(
+        [[n.x, n.y, n.z] for n in results.multi_face_landmarks[0].landmark]
+    )
+
+    head_pose_points_3D = np.multiply(
+        mesh_3D_Points[_indices_pose], [width, height, 1]
+    )
+    
+    head_pose_points_2D = mesh_points[_indices_pose]
+    
+    nose_3D_point = np.multiply(head_pose_points_3D[0], [1, 1, 3000])
+    nose_2D_point = head_pose_points_2D[0]
+
+    head_pose_points_2D = np.delete(head_pose_points_3D, 2, axis=1)
+    head_pose_points_3D = head_pose_points_3D.astype(np.float64)
+    head_pose_points_2D = head_pose_points_2D.astype(np.float64)
+
+
+    focal_length = 1 * width
+
+    cam_matrix = np.array(
+        [[focal_length, 0, height / 2], [0, focal_length, width / 2], [0, 0, 1]]
+    )
+    dist_matrix = np.zeros((4, 1), dtype=np.float64)
+    success, rot_vec, trans_vec = cv2.solvePnP(
+        head_pose_points_3D, head_pose_points_2D, cam_matrix, dist_matrix
+    )
+
+    rotation_matrix, jac = cv2.Rodrigues(rot_vec)
+    angles, mtxR, mtxQ, Qx, Qy, Qz = cv2.RQDecomp3x3(rotation_matrix)
+
+    angle_x = angles[0] * 360
+    angle_y = angles[1] * 360
+
+    p1 = nose_2D_point
+    p2 = (int(nose_2D_point[0]+angle_y*10), int(nose_2D_point[0] - angle_x*10))
+
+    cv2.line(img, p1, p2, (255,0,255), 3)
 
 # Inicjalizacja kamery
 
@@ -162,7 +212,8 @@ while cap.isOpened():
             # chin = face_landmarks.landmark[152]
 
             # Skalowanie punktów do wymiarów obrazu z kamery
-            h, w, _ = image.shape
+            h, w = image.shape[:2]
+
             nose = (int(nose.x * w), int(nose.y * h))
             left_eye = (int(left_eye.x * w), int(left_eye.y * h))
             right_eye = (int(right_eye.x * w), int(right_eye.y * h))
@@ -185,6 +236,8 @@ while cap.isOpened():
             distance_eyes_nose = calculate_distance(mid_point_eyes, nose)
             distance_mouth_endings = calculate_distance(left_mouth_ending, right_mouth_ending)
             distance_lips = calculate_distance(upper_lip_center, down_lip_center)
+
+            
 
             if start_time_flag_ == True:
                 start_time = time.time()
@@ -233,7 +286,7 @@ while cap.isOpened():
                 #          (0, 0, 255), 2)
  
                 # określenie czy oczy są otwarte
-
+                calculate_normal_vector(h,w, results, image)
                 if cv2.waitKey(2) & 0xFF == ord('t'):
                     subprocess.Popen(['python', r'C:\Users\Julia\Desktop\STUDIA\test\Obsluga-komputera-z-pomoca-motoryki-glowy-i-mimiki-twarzy\test_functions.py'])
                     break
