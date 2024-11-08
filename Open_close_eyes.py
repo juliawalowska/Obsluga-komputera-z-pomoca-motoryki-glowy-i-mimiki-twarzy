@@ -65,12 +65,12 @@ def open_close(right_eyelid_D, left_eyelid_D, avg_left, avg_right):
     #print(re_D, le_D)
 
     # Progi ustalone eksperymentalnie
-    if re_D < 0.3:
+    if re_D < 0.5:
         left_close = True
     else:
         left_close = False
 
-    if le_D < 0.3:
+    if le_D < 0.5:
         right_close = True
     else:
         right_close = False
@@ -114,9 +114,18 @@ def analyze_smile(landmarks, width, height):
 
 afterCalibration = False
 time2calibrate = 4
-time2click = 0.3
+time2click = 0.1
+time2drag = 0.75
 start_time = time.time()
+start1_time = 0
 start_time_flag_ = True
+both_close_time_flag_ = True
+one_close_time_flag_ = True
+dragging = False 
+drag_x0 = 0
+drag_y0 = 0
+drag_x1 = 0
+drag_y1 = 0
 
 LR_eye_distances = []
 TD_right_eyelid_distances = []
@@ -211,6 +220,8 @@ while cap.isOpened():
                     afterCalibration = True
                 cv2.putText(image, 'DO NOT CHANGE DISTANCE BETWEEN CAMERA', (20, 450), cv2.FONT_HERSHEY_SIMPLEX, 0.7,
                         (255, 255, 255), 1)
+                if dragging == True:
+                    cv2.putText(image, 'Zaznaczanie aktywne', (20, 400), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (200, 0, 0), 2)
 
             # obliczanie wektora patrzenia
             look_vector = calculate_look_vector(distance_left_eye_nose, distance_right_eye_nose, distance_left_eye_right_eye, distance_eyes_nose, avg_LR_eye_distance)
@@ -237,27 +248,52 @@ while cap.isOpened():
                 if cv2.waitKey(2) & 0xFF == ord('t'):
                     subprocess.Popen(['python', r'C:\Users\Julia\Desktop\STUDIA\test\Obsluga-komputera-z-pomoca-motoryki-glowy-i-mimiki-twarzy\test_functions.py'])
                     break
+                
 
                 if_closed = open_close(distance_left_eyelid, distance_right_eyelid, avg_TD_left_eyelid_distance,
                                        avg_TD_right_eyelid_distance)
                 if if_closed[0] == True and if_closed[1] == True:
                     cv2.putText(image, 'Oba oczy zamkniete', (450, 200), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (200, 0, 0), 2)
-                    start1_time = time.time()
-                    if (time.time() - start1_time) < time2click:
+                    one_close_time_flag_ = False
+                    if both_close_time_flag_ == True:
+                        start1_time = time.time()
+                        both_close_time_flag_ = False
+                    
+                    if (time.time() - start1_time) > time2click:
                         pyautogui.doubleClick() # Podwójne wciśnięcie lewego przycisku przy zamknięciu obu oczu
+                        
                 elif if_closed[0] == True and if_closed[1] == False:
                     cv2.putText(image, 'Lewe Zamkniete', (450, 200), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (200, 0, 0), 2)
-                    start1_time = time.time()
-                    if (time.time() - start1_time) < time2click:
-                        pyautogui.click() # Wciśnięcie lewego przycisku przy zamknięciu lewego oka
+                    both_close_time_flag_ = True
+                    if one_close_time_flag_ == True:
+                        start1_time = time.time()
+                        one_close_time_flag_ = False
+
+                    if (time.time() - start1_time) > time2click:
+                        pyautogui.leftClick() # Wciśnięcie lewego przycisku przy zamknięciu lewego oka
+                        if (time.time() - start1_time) > time2drag:
+                            one_close_time_flag_ = True
+                            if dragging == False:
+                                dragging = True
+                                pyautogui.keyDown('shift')
+                            else: 
+                                dragging = False
+                                pyautogui.keyUp('shift')
                 elif if_closed[0] == False and if_closed[1] == False:
+                    one_close_time_flag_ = True
+                    both_close_time_flag_ = True
                     cv2.putText(image, 'Oba otwarte', (450, 200), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (200, 0, 0), 2)
                 else:
                     cv2.putText(image, 'Prawe zamkniete', (450, 200), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (200, 0, 0), 2)
-                    start1_time = time.time()
+                    both_close_time_flag_ = True
+                    if one_close_time_flag_ == True:
+                        start1_time = time.time()
+                        one_close_time_flag_ = False
                     if (time.time() - start1_time) < time2click:
                         pyautogui.click(button='right') # Wciśnięcie prawego przycisku przy zamknięciu prawego oka
             
+            
+
             expression = analyze_smilev2(distance_mouth_endings, distance_lips, avg_LR_mouth_width, avg_TD_mouth_height)
             if expression == 'Smile' and look_vector == (0,0): pyautogui.scroll(20)
             elif expression == 'Shock'and look_vector == (0,0): pyautogui.scroll(-20)
@@ -267,22 +303,6 @@ while cap.isOpened():
             else:
                 pyautogui.moveRel(look_vector[0]/4, look_vector[1]/4)
 
-
-            # Analiza uśmiechu
-            # expression = analyze_smile(face_landmarks.landmark, w, h)
-            # if expression == 'Smile' and look_vector == (0,0): pyautogui.scroll(20)
-            # elif expression == 'Sad'and look_vector == (0,0): pyautogui.scroll(-20)
-            # # ruszanie kursorem o utworzony wektor
-            # if expression == 'Smile':
-            #     pyautogui.moveRel(look_vector[0], look_vector[1])
-            # else:
-            #     pyautogui.moveRel(look_vector[0]/4, look_vector[1]/4)
-
-            
-
-            
-            # print(look_vector)
-            
             # Wyświetlanie wyników analizy na obrazie
             cv2.putText(image, expression, (450, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (200, 0, 0), 2, cv2.LINE_AA)
 
