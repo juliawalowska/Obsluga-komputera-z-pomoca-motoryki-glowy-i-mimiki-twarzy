@@ -5,6 +5,27 @@ import numpy as np
 import math
 import time
 import subprocess
+import pyaudio
+import vosk
+import json
+import keyboard
+import pyperclip
+import threading
+
+
+PL_MODEL_PATH = "pl_s2t_model/vosk-model-small-pl-0.22"
+ENG_MODEL_PATH = "vosk-model-en-us-0.22-lgraph"
+CUSTOM_MODEL_PATH = "..." # Adjust path to your language
+MODEL_LIST_URL = "https://alphacephei.com/vosk/models"
+
+PL_MODEL_SPECIAL_WORD_LIST = ["przecinek", "kropka", "dwukropek", "średnik", "ukośnik", "spacja"]
+EN_MODEL_SPECIAL_WORD_LIST = ["comma", "dot", "colon", "semicolon", "slash", "space"]
+CUSTOM_MODEL_SPECIAL_WORD_LIST = []
+speaking_model = None
+listen = False
+pyautogui.FAILSAFE = False
+scr_width, scr_height = pyautogui.size()
+print(scr_width, scr_height)
 
 # Inicjalizacja MediaPipe Face Mesh z opcją 'refine_landmarks=True', która umożliwia użycie 478 punktów
 mp_face_mesh = mp.solutions.face_mesh
@@ -13,7 +34,85 @@ face_mesh = mp_face_mesh.FaceMesh(
     min_tracking_confidence=0.5,
     refine_landmarks=True  # Włącza rozszerzony zestaw punktów
 )
+class S2T_Model:
+    
+    def __init__(self, language: str = None, path_model: str = None) -> None:
+        self.language = language
+        
+        if self.language == "polish":
+            self.model_path = path_model
+            self. _list = PL_MODEL_SPECIAL_WORD_LIST
+        elif self.language == "english":
+            self.model_path = path_model
+            self. _list = EN_MODEL_SPECIAL_WORD_LIST
+        elif path_model == None:
+            print("Can't find language model.")
+        else:
+            self.model_path = path_model
+            self. _list = CUSTOM_MODEL_SPECIAL_WORD_LIST
 
+        model = vosk.Model(self.model_path)
+        self.rec = vosk.KaldiRecognizer(model, 8000) #Sample rate 16000Hz
+        p = pyaudio.PyAudio()
+        self.stream = p.open(format=pyaudio.paInt16,
+                        channels=1,
+                        rate=8000,
+                        input=True,
+                        frames_per_buffer=4096)
+        self.output_text_file = "recognized_text.txt"
+
+    def start_rec(self):
+        with open(self.output_text_file, "w") as output_file:
+            while True:
+                #print("Heard: ")
+
+                data = self.stream.read(4096)
+                if self.rec.AcceptWaveform(data): 
+                    result = json.loads(self.rec.Result())
+                    recognized_text = result['text']
+                    
+                    if self.language =="english":
+                        recognized_text = recognized_text[3:]
+
+                    if self. _list[0] in recognized_text.lower():
+                        pyautogui.typewrite(',')
+                    elif self. _list[1] in recognized_text.lower():
+                        pyautogui.typewrite('.')
+                    elif self. _list[2] in recognized_text.lower():
+                        pyautogui.typewrite(':')
+                    elif self. _list[3] in recognized_text.lower():
+                        pyautogui.typewrite(';')
+                    elif self. _list[4] in recognized_text.lower():
+                        pyautogui.typewrite('/')
+                    elif self. _list[5] in recognized_text.lower():
+                        pyautogui.typewrite(' ')
+                    else:
+                        pyperclip.copy(recognized_text)
+                        keyboard.press_and_release('ctrl+v')
+                    
+                    output_file.write(recognized_text + "\n") # Write text to the file
+                    print(recognized_text + "\n")
+                    
+                    if "stop" in recognized_text.lower(): # Check when to exit 
+                        print("Termination keyword detected. Stopping...")
+                        reset_threads(self)
+                        break
+                    
+                
+                
+                    
+
+def create_model(language: str, path: str) -> S2T_Model:
+
+    global speaking_model
+    if speaking_model == None:
+        speaking_model = S2T_Model(language, path)
+    
+    return speaking_model
+
+def Speech2Text(language: str, path: str):
+    model = create_model(language, path)
+    return model
 
 def calculate_distance(point1, point2):
     return math.sqrt((point2[0] - point1[0])**2 + (point2[1] - point1[1])**2)
@@ -87,30 +186,87 @@ def analyze_smilev2(mouth_endings_distance, mouth_lips_distance, avg_w, avg_h):
         else:
             return "Neutral"
 
+def camera_calibration():
+    pass
 
-def analyze_smile(landmarks, width, height):
-    # Punkty ust z dolnej i górnej wargi
-    upper_lip = [61, 185, 40, 39, 37, 0, 267, 269, 270, 409, 291]
-    lower_lip = [61, 146, 91, 181, 84, 17, 314, 405, 321, 375, 291]
+def calculate_normal_vector(height, width, results, img):
 
-    # Obliczanie średnich pozycji y dla górnej i dolnej wargi
-    upper_lip_pos = sum([landmarks[p].y for p in upper_lip]) / len(upper_lip)
-    lower_lip_pos = sum([landmarks[p].y for p in lower_lip]) / len(lower_lip)
-    # Oblicz różnicę między średnimi pozycjami y górnej i dolnej wargi
-    vertical_lip_gap = (lower_lip_pos - upper_lip_pos) * height
-    # Progowa wartość do rozpoznawania uśmiechu
-    smile_threshold = 19
-    sad_threshold = 9
-    # Klasyfikacja uśmiechu lub smutku
-    if vertical_lip_gap > smile_threshold:
-        return "Smile"
-    elif vertical_lip_gap < sad_threshold:
-        return "Sad"
-    else:
-        return "Neutral"
+    _indices_pose = [1, 33, 61, 199, 263, 291]
+    mesh_points = np.array(
+        [
+            np.multiply([p.x, p.y], [width, height]).astype(int)
+            for p in results.multi_face_landmarks[0].landmark
+        ]
+    )
+    mesh_3D_Points = np.array(
+        [[n.x, n.y, n.z] for n in results.multi_face_landmarks[0].landmark]
+    )
 
+    head_pose_points_3D = np.multiply(
+        mesh_3D_Points[_indices_pose], [width, height, 1]
+    )
+    
+    head_pose_points_2D = mesh_points[_indices_pose]
+    
+    nose_3D_point = np.multiply(head_pose_points_3D[0], [1, 1, 3000])
+    nose_2D_point = head_pose_points_2D[0]
+
+    head_pose_points_2D = np.delete(head_pose_points_3D, 2, axis=1)
+    head_pose_points_3D = head_pose_points_3D.astype(np.float64)
+    head_pose_points_2D = head_pose_points_2D.astype(np.float64)
+
+
+    focal_length = 1 * width
+
+    cam_matrix = np.array(
+        [[focal_length, 0, height / 2], [0, focal_length, width / 2], [0, 0, 1]]
+    )
+    dist_matrix = np.zeros((4, 1), dtype=np.float64)
+    success, rot_vec, trans_vec = cv2.solvePnP(
+        head_pose_points_3D, head_pose_points_2D, cam_matrix, dist_matrix
+    )
+
+    rotation_matrix, jac = cv2.Rodrigues(rot_vec)
+    angles, mtxR, mtxQ, Qx, Qy, Qz = cv2.RQDecomp3x3(rotation_matrix)
+
+    angle_x = angles[0] * 360
+    angle_y = angles[1] * 360
+
+    p1 = nose_2D_point
+    p2 = (int(nose_2D_point[0]+angle_y*10), int(nose_2D_point[0] - angle_x*10))
+
+    cv2.line(img, p1, p2, (255,0,255), 3)
+
+
+# Uruchamianie wątków odpowiedzialnych za speech to text model
+
+def monitoring_cursor_pos():
+    while True:
+        print("X: ", pyautogui.position().x, "Y: ", pyautogui.position().y)
+        if pyautogui.position().x <= 25 and pyautogui.position().y <= 25:
+            print("Starting speech to text state.")
+            start_s2t_state.set()
+            break
+        time.sleep(0.1)
+            
+def change_state(s2t_th):
+    start_s2t_state.wait()
+    s2t_th.start()
+    start_s2t_state.clear()
+    
+
+def reset_threads(speech2Text_model):
+    cursor_monitoring = threading.Thread(target=monitoring_cursor_pos, daemon=True)
+    cursor_monitoring.start()
+    speech2Text_thread = threading.Thread(target=speech2Text_model.start_rec, daemon=True)
+    watchdog_thread = threading.Thread(target=change_state, args=(speech2Text_thread,), daemon=True)
+    watchdog_thread.start()
 
 # Inicjalizacja kamery
+
+model = Speech2Text("polish", PL_MODEL_PATH)
+start_s2t_state = threading.Event()
+reset_threads(model)
 
 afterCalibration = False
 time2calibrate = 4
@@ -138,6 +294,9 @@ avg_LR_mouth_width = 0
 avg_TD_mouth_height = 0
 
 cap = cv2.VideoCapture(0)
+
+
+
 
 while cap.isOpened():
     success, image = cap.read()
@@ -171,7 +330,8 @@ while cap.isOpened():
             # chin = face_landmarks.landmark[152]
 
             # Skalowanie punktów do wymiarów obrazu z kamery
-            h, w, _ = image.shape
+            h, w = image.shape[:2]
+
             nose = (int(nose.x * w), int(nose.y * h))
             left_eye = (int(left_eye.x * w), int(left_eye.y * h))
             right_eye = (int(right_eye.x * w), int(right_eye.y * h))
@@ -194,6 +354,8 @@ while cap.isOpened():
             distance_eyes_nose = calculate_distance(mid_point_eyes, nose)
             distance_mouth_endings = calculate_distance(left_mouth_ending, right_mouth_ending)
             distance_lips = calculate_distance(upper_lip_center, down_lip_center)
+
+            
 
             if start_time_flag_ == True:
                 start_time = time.time()
@@ -244,11 +406,13 @@ while cap.isOpened():
                 #          (0, 0, 255), 2)
  
                 # określenie czy oczy są otwarte
-
-                if cv2.waitKey(2) & 0xFF == ord('t'):
-                    subprocess.Popen(['python', r'C:\Users\Julia\Desktop\STUDIA\test\Obsluga-komputera-z-pomoca-motoryki-glowy-i-mimiki-twarzy\test_functions.py'])
-                    break
+                #calculate_normal_vector(h,w, results, image)
+                # if cv2.waitKey(2) & 0xFF == ord('t'):
+                #     subprocess.Popen(['python', 'test_functions.py'])
+                #     break
                 
+
+                # Warunek przejścia do stanu rozpoznawania mowy.
 
                 if_closed = open_close(distance_left_eyelid, distance_right_eyelid, avg_TD_left_eyelid_distance,
                                        avg_TD_right_eyelid_distance)
