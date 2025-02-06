@@ -19,7 +19,7 @@ Program wykorzystuje zaawansowane technologie przetwarzania obrazu oraz sztuczn�
 ## Algorytm Działania Programu
 Program przetwarza dane wejściowe w formie obrazów uzyskanych z kamery internetowej (30 klatek na sekundę). Obraz jest przekazywany do modelu AI, który wykrywa twarz i wyznacza maskę punktów charakterystycznych. Na podstawie tych punktów analizowane są ruchy głowy oraz mimika twarzy, obsługiwana jest również detekcja głosu, co pozwala na "pisanie". Do nałożenia siatki punktów wykorzystano bibliotekę mediapipe, do detekcji mowy bibliotekę vosk.
 
-![Schemat blokowy działania programu](#)
+![Schemat blokowy działania programu](images/Schemat_blokowy.png)
 
 ## Konfiguracja
 Przed rozpoczeciem pracy należy skonfigurować model do rozpoznawania twarzy oraz model do rozpoznawania głosu.
@@ -40,12 +40,12 @@ p = pyaudio.PyAudio()
 self.stream = p.open(format=pyaudio.paInt16, channels=1, rate=16000, input=True, frames_per_buffer=4096)
 ```
 
-![Konfiguracja modelu](#)
 
 ## Kalibracja
 Kalibracja umożliwia dostosowanie programu do indywidualnej budowy twarzy użytkownika. Proces trwa 4 sekundy i polega na zapisaniu odległości pomiędzy kluczowymi punktami na twarzy, do których następnie odwołujemy się w programie. Ważne jest aby podczas kalibracji pozostawać bez ruchu i po jej zakończeniu nie zmieniać odległości od kamery.
 
-![Schemat blokowy kalibracji](#)
+![Kalibracja modelu](images/Kalibracjav2.png)
+![Kalibracja modelu](images/kalibracja.png)
 
 ## Sterowanie Kursorem
 Ruch kursora jest określany na podstawie odległości między oczami i nosem oraz ich zmienności w czasie.
@@ -63,7 +63,8 @@ def calculate_look_vector(D_left_eye_nose, D_right_eye_nose, D_left_right_eye, o
 
 Progi zostały dostosowane eksperymentalnie.
 
-![Schemat blokowy sterowania kursorem](#)
+![Schemat blokowy sterowania kursorem](images/ruszanie.png)
+![SSterowanie kursorem](images/wektor.png)
 
 ## Klikanie
 Klikanie jest realizowane poprzez analizę zamknięcia oczu użytkownika. Aby zapobiec przypadkowym kliknięciom określono minimalną ilość czasu, jaką oko musi być zamknięte aby wykonać akcję kliknięcia. Dodatkowo długie zamknięcie lewego oka powoduje wejście w tryb zaznaczania (informacja wyświetla się na obrazie z kamery).
@@ -75,7 +76,8 @@ def open_close(right_eyelid_D, left_eyelid_D, avg_left, avg_right):
     return [re_D < 0.5, le_D < 0.5]
 ```
 Progi zostały dostosowane eksperymentalnie.
-![Schemat blokowy klikania](#)
+![Schemat blokowy klikania](images/Klikanie.png)
+![Klikanie](images/lewe_zamkniete.png)
 
 ## Scrollowanie
 Scrollowanie realizowane jest poprzez analizę mimiki twarzy a dokładnie odległości między kącikami ust i wargami. Do scrollowania wykorzystano uśmiech i zdziwienie.
@@ -91,7 +93,10 @@ def analyze_smile(mouth_endings_distance, mouth_lips_distance, avg_w, avg_h):
             return "Neutral"
 ```
 
-![Schemat blokowy scrollowania](#)
+![Schemat blokowy scrollowania](images/scroll.png)
+![Neutral](images/neutral.png)
+![Uśmiech](images/smile.png)
+![Zdziwienie](images/shock.png)
 
 ## Rozpoznawanie Mowy
 System przechodzi w tryb rozpoznawania mowy po umieszczeniu kursora w lewym górnym rogu ekranu. Model przekształca mowę na tekst i wprowadza go do systemu.
@@ -119,9 +124,9 @@ Zadaniem testera było prześledzenie zadanej trasy z dokładnością większą 
 czasie. Test został przeprowadzony na różnych osobach, w różnych warunkach, wykorzystując zarówno
 utworzony program, jak i touch pad.
 
-![Wyniki testów program i touchpad](#)
+![Wyniki testów program i touchpad](images/czasTouchpad.png)
 
-![Wyniki testów w różnych warunkach oświetleniowych i różnej odległości od kamery](#)
+![Wyniki testów w różnych warunkach oświetleniowych i różnej odległości od kamery](images/czas_testu2.png)
 
 Wyniki uzyskane podczas testów zdecydowanie wskazują na korzyść sterowania klasycznego za pomocą
 touchpada. Wyniki te są zgodne z przewidywaniami ze względu na charakter utworzonego narzędzia.
