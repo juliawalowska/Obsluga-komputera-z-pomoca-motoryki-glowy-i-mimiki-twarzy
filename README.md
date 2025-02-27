@@ -16,6 +16,33 @@ Program wykorzystuje zaawansowane technologie przetwarzania obrazu oraz sztuczn�
 - [Testy i Wyniki](#testy-i-wyniki)
 - [Podsumowanie](#podsumowanie)
 
+## Instalacja:
+# Sklonuj repozytorium
+```sh
+    git clone https://github.com/juliawalowska/Obsluga-komputera-z-pomoca-motoryki-glowy-i-mimiki-twarzy.git
+```
+# Pobierz odpowiednie zależności
+```sh
+    pip install -r requirements.txt
+```
+# Popraw ścieżkę do modelu rozpoznawania głosu / pobierz model językowy ze strony producenta Vosk i uzupełnij ścieżkę. Wybierz język.
+```python
+    PL_MODEL_PATH = "pl_s2t_model/vosk-model-small-pl-0.22"
+    ENG_MODEL_PATH = "vosk-model-en-us-0.22-lgraph"
+    CUSTOM_MODEL_PATH = "..." # Adjust path to your language
+    MODEL_LIST_URL = "https://alphacephei.com/vosk/models"
+
+    PL_MODEL_SPECIAL_WORD_LIST = ["przecinek", "kropka", "dwukropek", "średnik", "ukośnik", "spacja"]
+    EN_MODEL_SPECIAL_WORD_LIST = ["comma", "dot", "colon", "semicolon", "slash", "space"]
+    CUSTOM_MODEL_SPECIAL_WORD_LIST = []
+
+    ...
+
+    model = Speech2Text("polish", PL_MODEL_PATH) #Wybór języka i ścieżki modelu językowego
+```
+
+Modele językowe do wykrywania słów można pobrać z linku: https://alphacephei.com/vosk/models.
+
 ## Algorytm Działania Programu
 Program przetwarza dane wejściowe w formie obrazów uzyskanych z kamery internetowej (30 klatek na sekundę). Obraz jest przekazywany do modelu AI, który wykrywa twarz i wyznacza maskę punktów charakterystycznych. Na podstawie tych punktów analizowane są ruchy głowy oraz mimika twarzy, obsługiwana jest również detekcja głosu, co pozwala na "pisanie". Do nałożenia siatki punktów wykorzystano bibliotekę mediapipe, do detekcji mowy bibliotekę vosk.
 
