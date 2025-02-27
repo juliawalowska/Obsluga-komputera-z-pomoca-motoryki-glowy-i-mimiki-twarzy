@@ -8,7 +8,7 @@ import subprocess
 import pyaudio
 import vosk
 import json
-import keyboard
+from keyboard import press_and_release
 import pyperclip
 import threading
 
@@ -22,7 +22,6 @@ PL_MODEL_SPECIAL_WORD_LIST = ["przecinek", "kropka", "dwukropek", "średnik", "u
 EN_MODEL_SPECIAL_WORD_LIST = ["comma", "dot", "colon", "semicolon", "slash", "space"]
 CUSTOM_MODEL_SPECIAL_WORD_LIST = []
 speaking_model = None
-listen = False
 pyautogui.FAILSAFE = False
 scr_width, scr_height = pyautogui.size()
 print(scr_width, scr_height)
@@ -38,25 +37,23 @@ class S2T_Model:
     
     def __init__(self, language: str = None, path_model: str = None) -> None:
         self.language = language
-        
+        self.model_path = path_model
+
         if self.language == "polish":
-            self.model_path = path_model
             self. _list = PL_MODEL_SPECIAL_WORD_LIST
         elif self.language == "english":
-            self.model_path = path_model
             self. _list = EN_MODEL_SPECIAL_WORD_LIST
         elif path_model == None:
             print("Can't find language model.")
         else:
-            self.model_path = path_model
             self. _list = CUSTOM_MODEL_SPECIAL_WORD_LIST
 
         model = vosk.Model(self.model_path)
-        self.rec = vosk.KaldiRecognizer(model, 8000) #Sample rate 16000Hz
+        self.rec = vosk.KaldiRecognizer(model, 16000) #Sample rate 16000Hz
         p = pyaudio.PyAudio()
         self.stream = p.open(format=pyaudio.paInt16,
                         channels=1,
-                        rate=8000,
+                        rate=16000,
                         input=True,
                         frames_per_buffer=4096)
         self.output_text_file = "recognized_text.txt"
@@ -72,7 +69,14 @@ class S2T_Model:
                     recognized_text = result['text']
                     
                     if self.language =="english":
-                        recognized_text = recognized_text[3:]
+                        recognized_text = recognized_text[3:] # english issues with 'the'
+
+                        
+                    if "stop" in recognized_text.lower(): # Check when to exit 
+                        print("Termination keyword detected. Stopping...")
+                        reset_threads(self)
+                        break
+
 
                     if self. _list[0] in recognized_text.lower():
                         pyautogui.typewrite(',')
@@ -87,19 +91,12 @@ class S2T_Model:
                     elif self. _list[5] in recognized_text.lower():
                         pyautogui.typewrite(' ')
                     else:
-                        pyperclip.copy(recognized_text)
-                        keyboard.press_and_release('ctrl+v')
+                        if recognized_text != "":
+                            pyperclip.copy(" " + recognized_text)
+                            press_and_release('ctrl+v')
                     
                     output_file.write(recognized_text + "\n") # Write text to the file
                     print(recognized_text + "\n")
-                    
-                    if "stop" in recognized_text.lower(): # Check when to exit 
-                        print("Termination keyword detected. Stopping...")
-                        reset_threads(self)
-                        break
-                    
-                
-                
                     
 
 def create_model(language: str, path: str) -> S2T_Model:
@@ -242,7 +239,6 @@ def calculate_normal_vector(height, width, results, img):
 
 def monitoring_cursor_pos():
     while True:
-        print("X: ", pyautogui.position().x, "Y: ", pyautogui.position().y)
         if pyautogui.position().x <= 25 and pyautogui.position().y <= 25:
             print("Starting speech to text state.")
             start_s2t_state.set()
@@ -292,6 +288,9 @@ avg_TD_eyelid_distance = 0
 avg_LR_eye_distance = 0
 avg_LR_mouth_width = 0
 avg_TD_mouth_height = 0
+
+
+
 
 cap = cv2.VideoCapture(0)
 
@@ -393,10 +392,10 @@ while cap.isOpened():
                 # cv2.putText(image, f'Original distance between eyes: {avg_LR_eye_distance:.2f}', (10, 180), cv2.FONT_HERSHEY_SIMPLEX, 0.7,
                 #         (0, 0, 255), 2)
                 # cv2.putText(image, f'Left Eye-Nose: {distance_left_eye_nose/avg_LR_eye_distance:.2f}', (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7,
-                #         (200, 0, 0), 2)
+                #         (200, 0, 0), 2)stacjaprzycisk stacjia niech to w dumni gdy śpisz nieniech to będą idealne świnienietakbłąd
                 # cv2.putText(image, f'Right Eye-Nose: {distance_right_eye_nose/avg_LR_eye_distance:.2f}', (10, 60), cv2.FONT_HERSHEY_SIMPLEX,
                 #         0.7, (200, 0, 0), 2)
-                # cv2.putText(image, f'Left Eye-Right Eye: {distance_left_eye_right_eye/avg_LR_eye_distance:.2f}', (10, 90),
+                # cv2.putText(image, f'Left Eye-Right Eye: {distance_leniby podsycaft_eye_right_eye/avg_LR_eye_distance:.2f}', (10, 90),
                 #         cv2.FONT_HERSHEY_SIMPLEX, 0.7, (200, 0, 0), 2)
                 # cv2.putText(image, f'Eye Nose: {distance_eyes_nose/avg_LR_eye_distance:.2f}', (10, 120), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (200, 0, 0), 2)
                 
@@ -407,13 +406,13 @@ while cap.isOpened():
  
                 # określenie czy oczy są otwarte
                 #calculate_normal_vector(h,w, results, image)
-                # if cv2.waitKey(2) & 0xFF == ord('t'):
-                #     subprocess.Popen(['python', 'test_functions.py'])
-                #     break
+                if cv2.waitKey(2) & 0xFF == ord('t'):
+                    subprocess.Popen(['python', 'test_functions.py'])
+                    break
                 
-
+                
                 # Warunek przejścia do stanu rozpoznawania mowy.
-
+                
                 if_closed = open_close(distance_left_eyelid, distance_right_eyelid, avg_TD_left_eyelid_distance,
                                        avg_TD_right_eyelid_distance)
                 if if_closed[0] == True and if_closed[1] == True:
