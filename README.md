@@ -218,11 +218,11 @@ stosowano wzmocnienie szumu białego na poziomie -43dB oraz -33dB. Poniżej zami
 których model był testowany. Analiza wyników skupiała się na poprawnie wykrytym słowie oraz czy dane
 słowo zostało wykryte w odpowiednim czasie w zdaniu
 
-![Dokładność modelu dla różnych syntezatorów bez szumu](#)
+![Dokładność modelu dla różnych syntezatorów bez szumu](images/Brak_szumu.png)
 
-![Dokładność modelu dla różnych syntezatorów z szumem na poziomie -43dB](#)
+![Dokładność modelu dla różnych syntezatorów z szumem na poziomie -43dB](images/Szum-43db.png)
 
-![Dokładność modelu dla różnych syntezatorów z szumem na poziomie -33dB](#)
+![Dokładność modelu dla różnych syntezatorów z szumem na poziomie -33dB](images/Szum-33db.png)
 
 Otrzymane pomiary wskazują na kluczową rolę charakteru otoczenia, w którym model funkcjonuje.
 Im amplituda szumu jest bliższa amplitudzie sygnału właściwego, tym częściej model będzie wykrywał
@@ -244,6 +244,10 @@ Dane przedstawiają dokładność modelu dla różnych syntezatorów, gdy różn
 szumu a wzmocnieniem sygnału właściwego wynosi 5 dB. Ze względu na znaczącą rolę szumu w całym
 sygnale zaczęły pojawiać się błędy, które kaskadowo przyczyniały się do powstawania kolejnych. Jest to
 naturalne zachowanie w algorytmie, który do przyszłego wyniku wykorzystuje przeszłe próbki.
+
+## Działanie całego systemu
+Przedstawienie działania naszego projektu zawarliśmy w krótkim filmie w linku poniżej.
+https://youtu.be/vrO2YGwetzU
 
 ## Podsumowanie
 Celem niniejszej pracy było opracowanie programu, który umożliwi obsługę komputera bez konieczności
